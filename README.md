@@ -1,4 +1,0 @@
-# resume-scanner
-
-
-hello world
