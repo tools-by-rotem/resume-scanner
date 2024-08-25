@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מחשבון התאמת קורות חיים למערכות אוטומטיות (ATS)</title>
+    <title>מחשבון התאמת קורות חיים לסורקים אוטומטיים (ATS)</title>
     <style>
         /* Reset some basic elements */
         body, h1, h2, p, textarea, button {
@@ -107,7 +107,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>מחשבון התאמת קורות חיים למערכות אוטומטיות (ATS)</h1>
+        <h1>מחשבון התאמת קורות חיים לסורקים אוטומטיים (ATS)</h1>
         <form id="atsForm">
             <label for="resume">העלו את קובץ ה-PDF של קורות החיים שלכם:</label>
             <input type="file" id="resume" accept=".pdf" />
@@ -156,40 +156,46 @@
         async function calculateScore() {
             // קבלת התכנים מהטפסים
             const fileInput = document.getElementById('resume');
-            const jobDescriptionText = document.getElementById('jobDescription').value.toLowerCase();
+            let jobDescriptionText = document.getElementById('jobDescription').value.toLowerCase();
 
             if (!fileInput.files.length) {
                 alert("אנא העלו קובץ PDF של קורות החיים שלכם.");
                 return;
             }
 
+            // הסרת הסימן "/" מדרישות המשרה
+            jobDescriptionText = jobDescriptionText.replace(/\//g, '');
+
+            // רשימת מילות מפתח להתעלם
+            const ignoreKeywords = new Set(['חובה', 'יתרון', 'ניסיון']);
+
             const resumeFile = fileInput.files[0];
             try {
                 const resumeText = await readPdf(resumeFile);
 
                 // בדיקת מילות מפתח בקורות החיים
-                const jobKeywords = jobDescriptionText.split(/\s+/);
+                const jobKeywords = jobDescriptionText.split(/\s+/).filter(keyword => !ignoreKeywords.has(keyword));
                 let matchCount = 0;
-                const matchedKeywords = [];
+                const matchedKeywordsSet = new Set();
 
                 jobKeywords.forEach(keyword => {
-                    if (resumeText.includes(keyword)) {
-                        matchCount++;
-                        matchedKeywords.push(keyword);
+                    if (keyword.length > 1 && resumeText.includes(keyword)) { // סינון תווים בודדים
+                        matchedKeywordsSet.add(keyword);
                     }
                 });
 
                 // חישוב האחוז הכולל
-                const totalKeywords = jobKeywords.length;
-                const score = (matchCount / totalKeywords) * 100;
+                const totalKeywords = jobKeywords.filter(keyword => keyword.length > 1).length;
+                const matchCountSet = matchedKeywordsSet.size;
+                const score = (matchCountSet / totalKeywords) * 100;
 
                 // הצגת התוצאה
                 const scoreElement = document.getElementById('score');
-                scoreElement.innerText = `אחוז התאמה: ${score.toFixed(2)}% (${matchCount} מתוך ${totalKeywords} מילות מפתח נמצאו)`;
+                scoreElement.innerText = `אחוז התאמה: ${score.toFixed(2)}% (${matchCountSet} מתוך ${totalKeywords} מילות מפתח נמצאו)`;
 
                 // הצגת מילות המפתח שנמצאו
                 const matchedKeywordsElement = document.getElementById('matchedKeywords');
-                matchedKeywordsElement.innerText = `מילות המפתח שנמצאו: ${matchedKeywords.join(', ')}`;
+                matchedKeywordsElement.innerText = `מילות המפתח שנמצאו: ${[...matchedKeywordsSet].join(', ')}`;
 
                 // הצגת תוצאת ההתאמה
                 document.getElementById('result').style.display = 'block';
